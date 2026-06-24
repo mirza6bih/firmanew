@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import emailjs from '@emailjs/browser';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -29,11 +30,26 @@ export default function Contact() {
     setError('');
 
     try {
+      // Save to Supabase
       const { error: insertError } = await supabase
         .from('contact_submissions')
         .insert([formData]);
 
       if (insertError) throw insertError;
+
+      // Send email via EmailJS
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          title: formData.title,
+          name: formData.name,
+          email: formData.email,
+          project_type: formData.project_type,
+          message: formData.message,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
 
       setSubmitted(true);
       setFormData({ title: '', name: '', email: '', project_type: '', message: '' });

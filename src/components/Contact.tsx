@@ -1,39 +1,46 @@
-import { useState, FormEvent, useRef } from 'react';
-import emailjs from '@emailjs/browser';
+import { useState, FormEvent } from 'react';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Contact() {
-  const formRef = useRef<HTMLFormElement>(null);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    name: '',
+    email: '',
+    project_type: '',
+    message: '',
+  });
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
   const { ref: scrollRef, isVisible: scrollVisible } = useScrollAnimation();
 
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!formRef.current) return;
-
     setSending(true);
     setError('');
 
     try {
-      await emailjs.sendForm(
-        'service_g6n79id',
-        'template_lir23bv',
-        formRef.current,
-        {
-          publicKey: 'ta64rSrw2viWjwcOw',
-        }
-      );
+      const { error: insertError } = await supabase
+        .from('contact_submissions')
+        .insert([formData]);
+
+      if (insertError) throw insertError;
 
       setSubmitted(true);
-      formRef.current.reset();
+      setFormData({ title: '', name: '', email: '', project_type: '', message: '' });
       setTimeout(() => setSubmitted(false), 4000);
     } catch (err) {
       setError('Došlo je do greške pri slanju poruke. Molimo pokušajte ponovo.');
-      console.error('EmailJS error:', err);
+      console.error('Submit error:', err);
     } finally {
       setSending(false);
     }
@@ -136,7 +143,7 @@ export default function Contact() {
                   </p>
                 </div>
               ) : (
-                <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   {error && (
                     <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                       <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
@@ -151,10 +158,11 @@ export default function Contact() {
                       </label>
                       <input
                         type="text"
-                        name="title"
                         id="title"
                         required
                         placeholder="Naslov poruke"
+                        value={formData.title}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
                       />
@@ -165,10 +173,11 @@ export default function Contact() {
                       </label>
                       <input
                         type="text"
-                        name="name"
                         id="name"
                         required
                         placeholder="Vaše ime"
+                        value={formData.name}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
                       />
@@ -182,10 +191,11 @@ export default function Contact() {
                       </label>
                       <input
                         type="email"
-                        name="email"
                         id="email"
                         required
                         placeholder="vas@email.com"
+                        value={formData.email}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
                       />
@@ -196,9 +206,10 @@ export default function Contact() {
                       </label>
                       <input
                         type="text"
-                        name="time"
-                        id="time"
+                        id="project_type"
                         placeholder="Npr. stambeni"
+                        value={formData.project_type}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
                       />
@@ -210,11 +221,12 @@ export default function Contact() {
                       Vaša Poruka
                     </label>
                     <textarea
-                      name="message"
                       id="message"
                       required
                       rows={5}
                       placeholder="Opišite nam Vaš projekat..."
+                      value={formData.message}
+                      onChange={handleChange}
                       className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                       focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all resize-none"
                     />
@@ -222,7 +234,6 @@ export default function Contact() {
 
                   <button
                     type="submit"
-                    id="button"
                     disabled={sending}
                     className="btn-primary w-full sm:w-auto group disabled:opacity-50 disabled:cursor-not-allowed"
                   >

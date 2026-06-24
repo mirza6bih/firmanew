@@ -1,16 +1,42 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef } from 'react';
+import emailjs from '@emailjs/browser';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function Contact() {
+  const formRef = useRef<HTMLFormElement>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
-  const { ref: formRef, isVisible: formVisible } = useScrollAnimation();
+  const { ref: scrollRef, isVisible: scrollVisible } = useScrollAnimation();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
+    if (!formRef.current) return;
+
+    setSending(true);
+    setError('');
+
+    try {
+      await emailjs.sendForm(
+        'service_g6n79id',
+        'template_lir23bv',
+        formRef.current,
+        {
+          publicKey: 'ta64rSrw2viWjwcOw',
+        }
+      );
+
+      setSubmitted(true);
+      formRef.current.reset();
+      setTimeout(() => setSubmitted(false), 4000);
+    } catch (err) {
+      setError('Došlo je do greške pri slanju poruke. Molimo pokušajte ponovo.');
+      console.error('EmailJS error:', err);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -38,8 +64,8 @@ export default function Contact() {
           {/* Kontakt informacije */}
           <div className="lg:col-span-2 space-y-8">
             <div
-              ref={formRef}
-              className={`animate-on-scroll-left ${formVisible ? 'is-visible' : ''}`}
+              ref={scrollRef}
+              className={`animate-on-scroll-left ${scrollVisible ? 'is-visible' : ''}`}
             >
               <h3 className="heading-sm text-primary-900 mb-6">Kontaktirajte Nas</h3>
 
@@ -53,12 +79,12 @@ export default function Contact() {
                   {
                     icon: Phone,
                     label: 'Telefon',
-                    value: '062 123 456',
+                    value: '+387 63 435 010',
                   },
                   {
                     icon: Mail,
                     label: 'Email',
-                    value: 'smprojekt@gmail.com',
+                    value: 'sm.projektovanje@gmail.com',
                   },
                   {
                     icon: Clock,
@@ -110,28 +136,39 @@ export default function Contact() {
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                  {error && (
+                    <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                      <p className="text-red-700 text-sm">{error}</p>
+                    </div>
+                  )}
+
                   <div className="grid sm:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-charcoal-700 mb-2">
-                        Ime i Prezime
+                        Naslov
                       </label>
                       <input
                         type="text"
+                        name="title"
+                        id="title"
                         required
-                        placeholder="Vaše puno ime"
+                        placeholder="Naslov poruke"
                         className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-charcoal-700 mb-2">
-                        Email Adresa
+                        Ime i Prezime
                       </label>
                       <input
-                        type="email"
+                        type="text"
+                        name="name"
+                        id="name"
                         required
-                        placeholder="vas@email.com"
+                        placeholder="Vaše ime"
                         className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
                       />
@@ -141,31 +178,30 @@ export default function Contact() {
                   <div className="grid sm:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-charcoal-700 mb-2">
-                        Broj Telefona
+                        Email Adresa
                       </label>
                       <input
-                        type="tel"
-                        placeholder="+387 xx xxx xxx"
+                        type="email"
+                        name="email"
+                        id="email"
+                        required
+                        placeholder="vas@email.com"
                         className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-charcoal-700 mb-2">
-                        Tip Projekta
+                        Vrsta objekta
                       </label>
-                      <select
-                        className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800
+                      <input
+                        type="text"
+                        name="time"
+                        id="time"
+                        placeholder="Npr. stambeni"
+                        className="w-full px-4 py-3 rounded-lg border border-charcoal-200 bg-charcoal-50/50 text-charcoal-800 placeholder-charcoal-400
                         focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-all"
-                        defaultValue=""
-                      >
-                        <option value="" disabled>Odaberite tip projekta</option>
-                        <option>Stambeni</option>
-                        <option>Poslovni</option>
-                        <option>Industrijski</option>
-                        <option>Renovacija</option>
-                        <option>Ostalo</option>
-                      </select>
+                      />
                     </div>
                   </div>
 
@@ -174,6 +210,8 @@ export default function Contact() {
                       Vaša Poruka
                     </label>
                     <textarea
+                      name="message"
+                      id="message"
                       required
                       rows={5}
                       placeholder="Opišite nam Vaš projekat..."
@@ -182,9 +220,26 @@ export default function Contact() {
                     />
                   </div>
 
-                  <button type="submit" className="btn-primary w-full sm:w-auto group">
-                    Pošaljite Poruku
-                    <Send className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                  <button
+                    type="submit"
+                    id="button"
+                    disabled={sending}
+                    className="btn-primary w-full sm:w-auto group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sending ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Slanje...
+                      </>
+                    ) : (
+                      <>
+                        Pošaljite Poruku
+                        <Send className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
                   </button>
                 </form>
               )}
